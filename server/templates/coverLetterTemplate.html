@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Shaded banner */
+    .banner {
+      background: #e1e1e1;
+      padding: 0.5in 0.5in 0.25in 0.5in;   /* reduced from 1.3in */
+      text-align: center;
+      margin: 0 -0.5in 0.25in -0.5in;
+    }
+
+    .name {
+      font-size: 22pt;                     /* reduced from 28pt */
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0;
+    }
+
+    .contact {
+      font-size: 11pt;
+      margin-top: 6px;
+      color: #222;
+    }
+
+    .contact i {
+      margin: 0 6px;
+    }
+
+    .content {
+      margin: 0 0.5in 0.5in 0.5in;         /* bottom margin added */
+    }
+
+    .recipient-block {
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+
+    .date {
+      margin-bottom: 4px;
+    }
+
+    .closing {
+      text-align: right;
+      margin-top: 50px;
+      margin-bottom: 30px;
+      font-style: normal;
+    }
+
+    .signature {
+      margin-top: 30px;
+      font-weight: 600;
+    }
+
+    .signature .name {
+      font-size: 14pt;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <div class="name">{{name}}</div>
+    <div class="contact">
+      <i class="fas fa-envelope"></i>{{email}}
+      <i class="fas fa-phone"></i>{{phone}}
+      <i class="fas fa-map-marker-alt"></i>{{location}}
+    </div>
+    <div class="contact">
+      <i class="fab fa-github"></i>{{github}}
+      <i class="fab fa-linkedin"></i>{{linkedin}}
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="recipient-block">
+      <div class="date">{{date}}</div>
+      {{recipientBlock}}
+    </div>
+
+
+    <div>{{letterBody}}</div>
+
+    <div class="closing">
+      <p>Sincerely,</p>
+      <div class="signature">
+        <div class="name">Ravi Rajpoot</div>
+        <div>MERN Stack Developer</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

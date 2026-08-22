@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+  
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #1a1a1a;
+    background: #fff;
+    max-width: 800px;
+    margin: 0.4in auto;
+    padding: 0 20px;
+  }
+  
+  /* HEADER */
+  .header {
+    text-align: center;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1a1a1a;
+    margin-bottom: 14px;
+  }
+  .header h1 {
+    font-size: 24pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 0 0 2px;
+  }
+  .header h2 {
+    font-size: 12pt;
+    font-weight: 400;
+    color: #444;
+    margin: 2px 0 6px;
+    letter-spacing: 0.5px;
+  }
+  .header .contact {
+    font-size: 9.5pt;
+    color: #555;
+    margin: 0;
+  }
+  .header .contact a {
+    color: #1a1a1a;
+    text-decoration: none;
+  }
+  .header .contact .sep {
+    margin: 0 6px;
+    color: #aaa;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin-top: 12px;
+  }
+  .section h3 {
+    font-size: 11pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 3px;
+    margin-bottom: 6px;
+  }
+
+  /* SUMMARY */
+  .summary-text {
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #333;
+  }
+
+  /* SKILLS */
+  .skills-line {
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #333;
+  }
+  .skills-line .skill-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 1px 10px;
+    border-radius: 12px;
+    margin: 2px 3px 2px 0;
+    font-size: 9.5pt;
+  }
+
+  /* PROJECTS & EXPERIENCE */
+  .item {
+    margin-bottom: 8px;
+  }
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .item-title {
+    font-weight: 600;
+    font-size: 10.5pt;
+  }
+  .item-sub {
+    font-style: italic;
+    font-size: 10pt;
+    color: #555;
+  }
+  .item-date {
+    font-size: 9.5pt;
+    color: #777;
+    white-space: nowrap;
+  }
+  .item-points {
+    margin: 2px 0 0 16px;
+    padding-left: 4px;
+    list-style-type: none;
+  }
+  .item-points li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 1px;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+  .item-points li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #555;
+    font-weight: 700;
+  }
+
+  /* EDUCATION */
+  .edu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+  .edu-degree {
+    font-weight: 600;
+    font-size: 10.5pt;
+  }
+  .edu-institution {
+    font-size: 10pt;
+    color: #555;
+  }
+  .edu-date {
+    font-size: 9.5pt;
+    color: #777;
+  }
+
+  /* IMPACT STATEMENT */
+  .impact {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: #f7f7f7;
+    border-left: 3px solid #1a1a1a;
+    font-size: 10pt;
+    font-style: italic;
+    color: #333;
+    border-radius: 0 4px 4px 0;
+  }
+  .impact strong {
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  @media print {
+    body { margin: 0.3in; }
+    .header { border-bottom-width: 2px; }
+    .impact { background: #f5f5f5; }
+  }
+
+  @media (max-width: 600px) {
+    body { margin: 0.2in; padding: 0 10px; }
+    .item-header { flex-direction: column; }
+    .item-date { white-space: normal; }
+    .edu-item { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Ravi Rajpoot</h1>
+    <h2>Full Stack Developer | Live Streaming &amp; VOD</h2>
+    <div class="contact">
+      <a href="mailto:ravirajpoot2204@gmail.com">ravirajpoot2204@gmail.com</a>
+      <span class="sep">|</span>
+      <a href="tel:+916388296339">+91 6388296339</a>
+      <span class="sep">|</span>
+      Lucknow, India
+      <br>
+      <a href="https://github.com/ravirajpoot2204">github.com/ravirajpoot2204</a>
+      <span class="sep">|</span>
+      <a href="https://linkedin.com/in/ravirajpoot2204">linkedin.com/in/ravirajpoot2204</a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Professional Summary</h3>
+    <div class="summary-text">{{summary}}</div>
+  </div>
+
+  <div class="section">
+    <h3>Technical Skills</h3>
+    <div class="skills-line">{{skills}}</div>
+  </div>
+
+  <div class="section">
+    <h3>Projects</h3>
+    {{projects}}
+  </div>
+
+  <div class="section">
+    <h3>Experience</h3>
+    {{experience}}
+  </div>
+
+  <div class="section">
+    <h3>Education</h3>
+    {{education}}
+  </div>
+
+  <div class="impact">
+    <strong>Why Hire Me:</strong> {{impact}}
+  </div>
+</body>
+</html>
