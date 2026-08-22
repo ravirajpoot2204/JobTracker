@@ -1,48 +1,76 @@
 // server/services/pdfService.js
-const puppeteer = require('puppeteer');
-const fs = require('fs').promises;
-const path = require('path');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
 
-async function renderHTMLToPDF(html) {
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+function generateCoverLetterPDF(data) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 40, bottom: 40, left: 40, right: 40 },
+      });
+
+      const chunks = [];
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Banner background
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      doc.rect(0, 0, doc.page.width, 110).fill('#e1e1e1');
+
+      // Name
+      doc.fillColor('#000').fontSize(22).font('Helvetica-Bold').text('Ravi Rajpoot', {
+        align: 'center',
+        width: pageWidth,
+      });
+
+      // Contact line
+      doc.fontSize(10).font('Helvetica').fillColor('#333').text(
+        'ravirajpoot2204@gmail.com | +91 6388296339 | Lucknow, Uttar Pradesh',
+        { align: 'center', width: pageWidth }
+      );
+      doc.text(
+        'github.com/ravirajpoot2204 | linkedin.com/in/ravirajpoot2204',
+        { align: 'center', width: pageWidth }
+      );
+
+      doc.moveDown(1.5);
+
+      // Date
+      doc.fontSize(10).fillColor('#000').text(
+        data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+        { align: 'left', width: pageWidth }
+      );
+
+      // Recipient block
+      doc.text(data.recipientName || 'Hiring Manager', { width: pageWidth });
+      if (data.company) doc.text(data.company, { width: pageWidth });
+      if (data.street) doc.text(data.street, { width: pageWidth });
+      const cityStateZip = [data.city, data.state, data.zip].filter(Boolean).join(', ');
+      if (cityStateZip) doc.text(cityStateZip, { width: pageWidth });
+
+      doc.moveDown(1);
+
+      // Letter body
+      doc.fontSize(11).font('Helvetica').fillColor('#000').text(
+        data.letterBody,
+        { align: 'left', width: pageWidth }
+      );
+
+      doc.moveDown(2);
+
+      // Signature
+      doc.text('Sincerely,', { align: 'right', width: pageWidth });
+      doc.moveDown(0.5);
+      doc.font('Helvetica-Bold').text('Ravi Rajpoot', { align: 'right', width: pageWidth });
+      doc.font('Helvetica').text('MERN Stack Developer', { align: 'right', width: pageWidth });
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
   });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    printBackground: true,
-    margin: { top: '0in', right: '0in', bottom: '0in', left: '0in' },
-  });
-  await browser.close();
-  return pdfBuffer;
-}
-
-async function generateCoverLetterPDF(data) {
-  const template = await fs.readFile(
-    path.join(__dirname, '../templates/coverLetterTemplate.html'),
-    'utf-8'
-  );
-
-  const recipientBlock = `${data.recipientName || 'Hiring Manager'}<br>
-${data.company}<br>
-${data.street ? data.street + '<br>' : ''}${data.city ? data.city + ', ' : ''}${data.state ? data.state + ' ' : ''}${data.zip || ''}`;
-
-  const html = template
-    .replace('{{name}}', 'Ravi Rajpoot')
-    .replace('{{email}}', 'ravirajpoot2204@gmail.com')
-    .replace('{{phone}}', '+91 6388296339')
-    .replace('{{location}}', 'Lucknow, Uttar Pradesh')
-    .replace('{{github}}', 'github.com/ravirajpoot2204')
-    .replace('{{linkedin}}', 'linkedin.com/in/ravirajpoot2204')
-    .replace('{{date}}', data.date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }))
-    .replace('{{recipientBlock}}', recipientBlock)
-    .replace('{{greeting}}', 'Dear')
-    .replace('{{letterBody}}', data.letterBody.replace(/\n/g, '<br>'));
-
-  // Use the same renderHTMLToPDF function
-  return await renderHTMLToPDF(html);
 }
 
 module.exports = { generateCoverLetterPDF };

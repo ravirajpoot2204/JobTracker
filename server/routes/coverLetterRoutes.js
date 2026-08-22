@@ -31,13 +31,13 @@ router.post('/download', async (req, res) => {
 
     const pdfBuffer = await generateCoverLetterPDF({
       letterBody: text,
-      company: company || '',
-      role: role || '',
-      recipientName: recipientName || 'Hiring Manager',
-      street: street || '',
-      city: city || '',
-      state: state || '',
-      zip: zip || '',
+      company,
+      role,
+      recipientName,
+      street,
+      city,
+      state,
+      zip,
     });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -48,5 +48,7 @@ router.post('/download', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+
 
 module.exports = router;
