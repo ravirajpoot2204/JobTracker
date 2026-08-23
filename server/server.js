@@ -8,10 +8,10 @@ const { checkForApplicationEmails } = require('./services/emailWatcher');
 const app = express();
 const coverLetterRoutes = require('./routes/coverLetterRoutes');
 // Run every 10 minutes
-// cron.schedule('*/10 * * * *', () => {
-//   console.log('Running email check...');
-//   checkForApplicationEmails();
-// });
+ cron.schedule('*/10 * * * *', () => {
+   console.log('Running email check...');
+   checkForApplicationEmails();
+ });
 
 // Connect to MongoDB
 connectDB();
