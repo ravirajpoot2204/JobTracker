@@ -64,8 +64,8 @@ export const downloadCoverLetter = (payload: {
   zip?: string;
 }) =>
   api.post(`/cover-letter/download`, payload, { responseType: 'blob' });
-  export const checkEmails = () =>
-  api.post('/jobs/check-emails');
+export const checkEmails = () =>
+  api.post('/jobs/check-emails').then(res => res.data);
 export const generateCoverLetter = (id: string, jobDescription: string) =>
   api.post(`/jobs/${id}/generate-cover-letter`, { jobDescription });
 
