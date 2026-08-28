@@ -19,8 +19,10 @@ const tabs: { id: Tab; label: string; icon: string }[] = [
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [jobsRefreshKey, setJobsRefreshKey] = useState(0);
 
   const handleDataChange = () => setRefreshKey((prev) => prev + 1);
+  const handleJobsRefresh = () => setJobsRefreshKey((prev) => prev + 1);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -51,12 +53,14 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'dashboard' && <Dashboard key={refreshKey} />}
+        {activeTab === 'dashboard' && (
+          <Dashboard key={refreshKey} onJobsRefresh={handleJobsRefresh} />
+        )}
         {activeTab === 'cover-letter' && <CoverLetterGenerator />}
         {activeTab === 'jobs' && (
           <div className="space-y-6">
             <JobForm onJobAdded={handleDataChange} />
-            <JobList key={refreshKey} />
+            <JobList key={jobsRefreshKey} />
           </div>
         )}
         {activeTab === 'kanban' && <KanbanBoard key={refreshKey} onDataChange={handleDataChange} />}

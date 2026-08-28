@@ -86,7 +86,7 @@ const Dashboard = ({ onJobsRefresh }: DashboardProps) => {
             <div
               key={key}
               className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-6"
-            >
+            > 
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-500">{label}</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${color}`}>
