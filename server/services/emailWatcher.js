@@ -12,38 +12,86 @@ function detectStatus(subject, snippet) {
   if (/invite you to|schedule an interview|interview availability|book a slot|interview slot|we would like to schedule|we are pleased to invite/i.test(text)) return 'interview_scheduled';
   return 'applied';
 }
+
 function isRelevantEmail(from, subject, snippet = '') {
   const lowerFrom = from.toLowerCase();
   const lowerSubject = subject.toLowerCase();
   const lowerSnippet = snippet.toLowerCase();
   const combined = `${lowerSubject} ${lowerSnippet}`;
 
-  // Skip obvious non-application emails
-  if (lowerFrom.includes('ambitionbox.com')) return false;
-  if (lowerFrom.includes('naukri.com') && lowerSubject.startsWith('you applied for')) return false; // Naukri daily digest
-  if (lowerSubject.startsWith('ticket received')) return false;
-  if (/newsletter|unsubscribe|promotion|sale|offer inside|discount|free trial/i.test(combined)) return false;
+  // 1. Skip obvious non-job emails (social notifications, profile views, etc.)
+  const irrelevantPatterns = [
+    'people viewed your profile',
+    'share their thoughts',
+    'congratulate',
+    'recently posted',
+    'i want to connect',
+    'streak freeze',
+    'your posts got',
+    'your profile is popular',
+    'search appearances',
+    'job openings in the past week',
+    'video streamer job openings',
+    'add ',
+    'job openings',
+    'your profile',
+    'share their',
+    'posted',
+  ];
 
-  // Strong job-related keywords (expanded)
+  for (const pattern of irrelevantPatterns) {
+    if (lowerSubject.includes(pattern) || lowerSnippet.includes(pattern)) {
+      return false;
+    }
+  }
+
+  // 2. Strong job-related keywords
   const jobKeywords = [
-    'application', 'applied', 'applying', 'resume', 'cv', 'position', 'job', 'career',
-    'opportunity', 'interview', 'offer', 'rejected', 'received', 'thank you for applying',
-    'we have received', 'your application', 'candidacy', 'hiring', 'recruitment',
-    'talent acquisition', 'next steps', 'action required', 'application status',
-    'application update', 'unfortunately', 'we regret', 'not selected',
-    'exciting opportunity', 'join our team', 'role', 'opening', 'vacancy',
-    'employment', 'work with us', 'apply now', 'shortlisted', 'selected for',
-    'assessment', 'online test', 'coding challenge', 'technical round',
-    'your application was sent', 'your application to', 'application viewed',
-    'profile shortlisted', 'application received', 'application sent',
-    'job alert', 'apply to', 'hiring for', 'remote role',
+    'application was sent',
+    'application to ',
+    'application viewed',
+    'application received',
+    'application update',
+    'application status',
+    'thank you for applying',
+    'we have received your application',
+    'your application',
+    'interview invitation',
+    'interview scheduled',
+    'offer letter',
+    'rejected',
+    'not selected',
+    'unfortunately',
+    'action required',
+    'shortlisted',
+    'selected for',
+    'coding test',
+    'assessment',
+    'technical interview',
+    'full stack developer',
+    'frontend developer',
+    'backend developer',
+    'mern stack developer',
+    'java developer',
+    'software developer',
+    'software engineer',
+    'intern',
+    'trainee',
+    'apprentice',
+    'job alert',
+    'application sent',
+    'applied to',
+    'application for',
+    'position at',
+    'role at',
+    'your application was sent',
   ];
 
   for (const keyword of jobKeywords) {
     if (combined.includes(keyword)) return true;
   }
 
-  // If sender is from a known job platform, accept even if subject is vague
+  // 3. If sender is from a known job platform, accept (but still skip obvious social noise)
   const knownJobDomains = [
     'linkedin.com', 'indeed.com', 'greenhouse.io', 'lever.co', 'workday.com',
     'myworkday.com', 'recruiterbox.com', 'jobvite.com', 'smartrecruiters.com',
@@ -54,20 +102,27 @@ function isRelevantEmail(from, subject, snippet = '') {
     'instahyre.com', 'cutshort.io', 'hirect.com', 'tophire.co',
   ];
 
-  for (const domain of knownJobDomains) {
-    if (lowerFrom.includes(domain)) return true;
+  const isKnownDomain = knownJobDomains.some(domain => lowerFrom.includes(domain));
+  if (isKnownDomain) {
+    // Exclude LinkedIn social notifications
+    if (lowerFrom.includes('linkedin.com') && /viewed your profile|share their thoughts|congratulate|recently posted|add |connect|streak freeze|your posts got|profile is popular|search appearances/.test(combined)) {
+      return false;
+    }
+    return true;
   }
 
-  // If subject mentions a specific job title (heuristic), keep it
+  // 4. If subject contains a job title, accept
   const jobTitlePattern = /\b(developer|engineer|designer|manager|analyst|consultant|intern|trainee|architect|scientist|specialist|lead|senior|junior|full stack|frontend|backend|devops|data|product|project|mern|java|python|react|node|angular)\b/i;
-  if (jobTitlePattern.test(lowerSubject) || jobTitlePattern.test(lowerSnippet)) return true;
+  if (jobTitlePattern.test(lowerSubject) || jobTitlePattern.test(lowerSnippet)) {
+    return true;
+  }
 
   return false;
 }
 
 async function checkForApplicationEmails() {
   try {
-    // Very broad query covering many possible job email subjects and senders
+    // Broad query (same as before but can be extended)
     const query = [
       'subject:application',
       'subject:applied',
@@ -108,6 +163,10 @@ async function checkForApplicationEmails() {
       'from:ziprecruiter.com',
       'from:upwork.com',
       'from:wellfound.com',
+      'from:instahyre.com',
+      'from:cutshort.io',
+      'from:hirect.com',
+      'from:tophire.co',
     ].join(' OR ');
 
     const messages = await listMessages({ query, maxResults: 50 });

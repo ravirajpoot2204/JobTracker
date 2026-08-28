@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchJobs, binJob, generateCoverLetter, sendFollowUp,type JobData } from '../../services/api';
+import { fetchJobs, binJob, generateCoverLetter, sendFollowUp, type JobData } from '../../services/api';
 
 const statusColors: Record<string, string> = {
   saved: 'bg-gray-100 text-gray-800',
@@ -86,77 +86,103 @@ const JobList = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {jobs.map((job) => (
-            <div key={job._id} className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{job.role}</h3>
-                  <p className="text-sm text-gray-600">{job.company} · {job.platform}</p>
+          {jobs.map((job) => {
+            const gmailLink = job.emailLog?.find(log => log.direction === 'inbound')?.link || '';
+            return (
+              <div key={job._id} className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-5">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {gmailLink ? (
+                        <a
+                          href={gmailLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-brand-600 hover:underline"
+                        >
+                          {job.role}
+                        </a>
+                      ) : (
+                        job.role
+                      )}
+                    </h3>
+                    <p className="text-sm text-gray-600">{job.company} · {job.platform}</p>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[job.status] || 'bg-gray-100 text-gray-800'}`}>
+                    {job.status.replace(/_/g, ' ')}
+                  </span>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[job.status] || 'bg-gray-100 text-gray-800'}`}>
-                  {job.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-              {job.notes && <p className="mt-2 text-sm text-gray-500">{job.notes}</p>}
-              <div className="mt-3 flex flex-wrap gap-2 text-sm">
-                <span className="text-gray-400">Follow-ups: {job.followUpCount || 0}</span>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleSendFollowUp(job._id!)}
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                >
-                  📧 Follow-up
-                </button>
-                <button
-                  onClick={() => setExpandedJobId(expandedJobId === job._id ? null : (job._id ?? null))}
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                >
-                  {expandedJobId === job._id ? 'Hide Cover Letter' : 'Generate Cover Letter'}
-                </button>
-                <button
-                  onClick={() => handleBin(job._id!)}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
-                >
-                  🗑 Bin
-                </button>
-              </div>
-
-              {expandedJobId === job._id && (
-                <div className="mt-4 border-t pt-4">
-                  <textarea
-                    value={jobDescriptionInput}
-                    onChange={(e) => setJobDescriptionInput(e.target.value)}
-                    placeholder="Paste job description here..."
-                    rows={3}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm"
-                  />
+                {job.notes && <p className="mt-2 text-sm text-gray-500">{job.notes}</p>}
+                <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                  <span className="text-gray-400">Follow-ups: {job.followUpCount || 0}</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
                   <button
-                    onClick={() => handleGenerateCoverLetter(job._id!)}
-                    disabled={generatingId === job._id}
-                    className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                    onClick={() => handleSendFollowUp(job._id!)}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                   >
-                    {generatingId === job._id ? 'Generating...' : 'Generate'}
+                    📧 Follow-up
                   </button>
-                  {coverLetterText && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-md whitespace-pre-wrap text-sm text-gray-700">
-                      {coverLetterText}
-                    </div>
-                  )}
-                  {downloadUrl && (
+                  <button
+                  onClick={() => setExpandedJobId(expandedJobId === job._id ? null : (job._id ?? null))}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    {expandedJobId === job._id ? 'Hide Cover Letter' : 'Generate Cover Letter'}
+                  </button>
+                  <button
+                    onClick={() => handleBin(job._id!)}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
+                  >
+                    🗑 Bin
+                  </button>
+                  {gmailLink && (
                     <a
-                      href={`http://localhost:5000/api${downloadUrl}`}
+                      href={gmailLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-block text-brand-600 hover:text-brand-700 font-medium"
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                     >
-                      📄 Download PDF
+                      ✉️ Open Email
                     </a>
                   )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                {expandedJobId === job._id && (
+                  <div className="mt-4 border-t pt-4">
+                    <textarea
+                      value={jobDescriptionInput}
+                      onChange={(e) => setJobDescriptionInput(e.target.value)}
+                      placeholder="Paste job description here..."
+                      rows={3}
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm"
+                    />
+                    <button
+                      onClick={() => handleGenerateCoverLetter(job._id!)}
+                      disabled={generatingId === job._id}
+                      className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                    >
+                      {generatingId === job._id ? 'Generating...' : 'Generate'}
+                    </button>
+                    {coverLetterText && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-md whitespace-pre-wrap text-sm text-gray-700">
+                        {coverLetterText}
+                      </div>
+                    )}
+                    {downloadUrl && (
+                      <a
+                        href={`http://localhost:5000/api${downloadUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-block text-brand-600 hover:text-brand-700 font-medium"
+                      >
+                        📄 Download PDF
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { fetchStats, checkEmails, type StatsData } from '../../services/api';
 
+interface DashboardProps {
+  onJobsRefresh: () => void;
+}
+
 const statusConfig = [
   { key: 'applied', label: 'Applied', color: 'bg-blue-100 text-blue-800' },
   { key: 'interview', label: 'Interviews', color: 'bg-purple-100 text-purple-800' },
@@ -10,28 +14,30 @@ const statusConfig = [
   { key: 'no_response', label: 'No Response', color: 'bg-gray-100 text-gray-800' },
 ];
 
-const Dashboard = () => {
+const Dashboard = ({ onJobsRefresh }: DashboardProps) => {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [checkMessage, setCheckMessage] = useState('');
 
-const handleCheckEmails = async () => {
-  setChecking(true);
-  setCheckMessage('');
-  try {
-    const result = await checkEmails();
-    setCheckMessage(result.message || 'Email check completed.');
-    // Refresh stats after checking
-    const res = await fetchStats();
-    setStats(res.data);
-  } catch (err) {
-    console.error(err);
-    setCheckMessage('Failed to check emails.');
-  } finally {
-    setChecking(false);
-  }
-};
+  const handleCheckEmails = async () => {
+    setChecking(true);
+    setCheckMessage('');
+    try {
+      const res = await checkEmails();
+      setCheckMessage('Email check completed.');
+      // Refresh stats
+      const statsRes = await fetchStats();
+      setStats(statsRes.data);
+      // Tell App to refresh JobList
+      onJobsRefresh();
+    } catch (err) {
+      console.error(err);
+      setCheckMessage('Failed to check emails.');
+    } finally {
+      setChecking(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -50,7 +56,6 @@ const handleCheckEmails = async () => {
 
   return (
     <div>
-      {/* Manual Email Check Button – ALWAYS VISIBLE */}
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={handleCheckEmails}
@@ -71,7 +76,6 @@ const handleCheckEmails = async () => {
         {checkMessage && <span className="text-sm text-gray-600">{checkMessage}</span>}
       </div>
 
-      {/* Stats Section */}
       {loading ? (
         <div className="text-center py-8">Loading stats...</div>
       ) : !stats ? (
