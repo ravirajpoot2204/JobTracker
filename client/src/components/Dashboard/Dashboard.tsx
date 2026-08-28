@@ -36,7 +36,7 @@ const Dashboard = ({ onJobsRefresh }: DashboardProps) => {
       setCheckMessage('Failed to check emails.');
     } finally {
       setChecking(false);
-    }
+    } 
   };
 
   useEffect(() => {
