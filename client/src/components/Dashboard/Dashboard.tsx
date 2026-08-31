@@ -24,7 +24,7 @@ const Dashboard = ({ onJobsRefresh }: DashboardProps) => {
     setChecking(true);
     setCheckMessage('');
     try {
-      const res = await checkEmails();
+      await checkEmails();
       setCheckMessage('Email check completed.');
       // Refresh stats
       const statsRes = await fetchStats();
