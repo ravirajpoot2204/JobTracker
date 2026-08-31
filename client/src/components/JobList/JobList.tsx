@@ -87,39 +87,12 @@ const JobList = () => {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {jobs.map((job) => {
-            // Find the original inbound email link (the application confirmation)
             const gmailLink = job.emailLog?.find(log => log.direction === 'inbound')?.link || '';
-
             return (
-              <div
-                key={job._id}
-                onClick={() => {
-                  if (gmailLink) {
-                    window.open(gmailLink, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                className={`bg-white rounded-xl shadow-card transition-shadow p-5 ${
-                  gmailLink ? 'cursor-pointer hover:shadow-card-hover' : ''
-                }`}
-                title={gmailLink ? 'Click to open original email' : ''}
-              >
+              <div key={job._id} className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {gmailLink ? (
-                        <a
-                          href={gmailLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:text-blue-600 hover:underline"
-                        >
-                          {job.role}
-                        </a>
-                      ) : (
-                        job.role
-                      )}
-                    </h3>
+                    <h3 className="text-lg font-medium text-gray-900">{job.role}</h3>
                     <p className="text-sm text-gray-600">{job.company} · {job.platform}</p>
                   </div>
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[job.status] || 'bg-gray-100 text-gray-800'}`}>
@@ -130,7 +103,8 @@ const JobList = () => {
                 <div className="mt-3 flex flex-wrap gap-2 text-sm">
                   <span className="text-gray-400">Follow-ups: {job.followUpCount || 0}</span>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+
+                <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     onClick={() => handleSendFollowUp(job._id!)}
                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
@@ -149,21 +123,22 @@ const JobList = () => {
                   >
                     🗑 Bin
                   </button>
-                  {gmailLink && (
-                    <a
-                      href={gmailLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      ✉️ Open Email
-                    </a>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (gmailLink) {
+                        window.open(gmailLink, '_blank', 'noopener,noreferrer');
+                      } else {
+                        alert('No email link available for this job.');
+                      }
+                    }}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    ✉️ Open Email
+                  </button>
                 </div>
 
                 {expandedJobId === job._id && (
-                  <div className="mt-4 border-t pt-4" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-4 border-t pt-4">
                     <textarea
                       value={jobDescriptionInput}
                       onChange={(e) => setJobDescriptionInput(e.target.value)}
@@ -189,7 +164,6 @@ const JobList = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-blue-600 hover:text-blue-700 font-medium"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         📄 Download PDF
                       </a>
