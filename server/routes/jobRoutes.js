@@ -17,8 +17,12 @@ const { checkForApplicationEmails } = require('../services/emailWatcher');
 
 router.post('/', createJob);
 router.post('/check-emails', async (req, res) => {
-  await checkForApplicationEmails();
-  res.json({ success: true, message: 'Email check complete' });
+  try {
+    await checkForApplicationEmails();
+    res.json({ success: true, message: 'Email check complete' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 router.get('/', getJobs);
