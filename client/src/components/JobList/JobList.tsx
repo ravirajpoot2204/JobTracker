@@ -87,7 +87,7 @@ const JobList = () => {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {jobs.map((job) => {
-            // Find inbound email link (original application email)
+            // Find the original inbound email link (the application confirmation)
             const gmailLink = job.emailLog?.find(log => log.direction === 'inbound')?.link || '';
 
             return (
@@ -98,8 +98,9 @@ const JobList = () => {
                     window.open(gmailLink, '_blank', 'noopener,noreferrer');
                   }
                 }}
-                className={`bg-white rounded-xl shadow-card transition-shadow p-5 ${gmailLink ? 'cursor-pointer hover:shadow-card-hover' : ''
-                  }`}
+                className={`bg-white rounded-xl shadow-card transition-shadow p-5 ${
+                  gmailLink ? 'cursor-pointer hover:shadow-card-hover' : ''
+                }`}
                 title={gmailLink ? 'Click to open original email' : ''}
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -111,7 +112,7 @@ const JobList = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="hover:text-brand-600 hover:underline"
+                          className="hover:text-blue-600 hover:underline"
                         >
                           {job.role}
                         </a>
@@ -168,12 +169,12 @@ const JobList = () => {
                       onChange={(e) => setJobDescriptionInput(e.target.value)}
                       placeholder="Paste job description here..."
                       rows={3}
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm"
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                     <button
                       onClick={() => handleGenerateCoverLetter(job._id!)}
                       disabled={generatingId === job._id}
-                      className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                      className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
                       {generatingId === job._id ? 'Generating...' : 'Generate'}
                     </button>
@@ -187,7 +188,7 @@ const JobList = () => {
                         href={`http://localhost:5000${downloadUrl}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-block text-brand-600 hover:text-brand-700 font-medium"
+                        className="mt-2 inline-block text-blue-600 hover:text-blue-700 font-medium"
                         onClick={(e) => e.stopPropagation()}
                       >
                         📄 Download PDF
