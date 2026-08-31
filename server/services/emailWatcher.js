@@ -236,9 +236,11 @@ async function checkForApplicationEmails() {
 
       console.log(`✅ Created job: ${parsed.company} - ${parsed.role} (${status}) with emails: ${contactEmails.join(', ') || 'none'}`);
     }
-  } catch (err) {
-    console.error('❌ Email watcher error:', err.message);
-  }
+   } catch (err) {
+  console.error('❌ Email watcher error:', err.message);
+  throw err;
 }
+}
+
 
 module.exports = { checkForApplicationEmails };
