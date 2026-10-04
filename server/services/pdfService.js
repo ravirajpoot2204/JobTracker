@@ -1,4 +1,7 @@
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
 
 function generateCoverLetterPDF(data) {
   return new Promise((resolve, reject) => {
@@ -91,4 +94,136 @@ function generateCoverLetterPDF(data) {
   });
 }
 
-module.exports = { generateCoverLetterPDF };
+
+
+
+// Escape special LaTeX characters in plain text
+function esc(text) {
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/\\/g, '\\textbackslash{}')
+    .replace(/([{}])/g, '\\$1')
+    .replace(/&/g, '\\&')
+    .replace(/%/g, '\\%')
+    .replace(/\$/g, '\\$')
+    .replace(/#/g, '\\#')
+    .replace(/_/g, '\\_')
+    .replace(/\^/g, '\\textasciicircum{}')
+    .replace(/~/g, '\\textasciitilde{}')
+    .replace(/[^\x00-\x7F]/g, ''); // strip non-ASCII (emoji etc.)
+}
+
+function escUrl(url) {
+  if (!url) return '#';
+  return String(url).replace(/#/g, '\\#').replace(/%/g, '\\%').replace(/&/g, '\\&');
+}
+
+function buildSkillsTex(skills) {
+  if (!skills || typeof skills !== 'object') return '';
+  const entries = Object.entries(skills).filter(([, v]) => v);
+  return entries
+    .map(([k, v], i) => {
+      const end = i === entries.length - 1 ? '' : ' \\\\';
+      return `        \\textbf{${esc(k)}:} ${esc(v)}${end}`;
+    })
+    .join('\n');
+}
+
+function buildExperienceTex(experience) {
+  if (!Array.isArray(experience)) return '';
+  return experience
+    .map((e) => {
+      const points = (e.points || [])
+        .map((p) => `      \\resumeItem{${esc(p)}}`)
+        .join('\n');
+      return `  \\resumeSubheading
+    {${esc(e.title)}}{${esc(e.date)}}
+    {${esc(e.company)}}{${esc(e.location)}}
+    \\resumeItemListStart
+${points}
+    \\resumeItemListEnd`;
+    })
+    .join('\n\n');
+}
+
+function buildProjectsTex(projects) {
+  if (!Array.isArray(projects)) return '';
+  return projects
+    .map((p) => {
+      const tech = p.tech ? ` -- \\emph{${esc(p.tech)}}` : '';
+      const linkPart = p.link
+        ? `{\\href{${escUrl(p.link)}}{${esc(p.link.replace(/^https?:\/\//, ''))}}}`
+        : '';
+      const points = (p.points || [])
+        .map((pt) => `      \\resumeItem{${esc(pt)}}`)
+        .join('\n');
+      return `  \\resumeProjectHeading
+    {\\textbf{${esc(p.name)}}${tech}}{${linkPart}}
+    \\resumeItemListStart
+${points}
+    \\resumeItemListEnd`;
+    })
+    .join('\n\n');
+}
+
+function buildEducationTex(education) {
+  if (!Array.isArray(education)) return '';
+  return education
+    .map((e) => `  \\resumeSubheading
+    {${esc(e.institution)}}{${esc(e.date)}}
+    {${esc(e.degree)}}{${esc(e.location)}}`)
+    .join('\n\n');
+}
+
+function buildAchievementsTex(achievements) {
+  if (!Array.isArray(achievements)) return '';
+  return achievements
+    .map((a) => `  \\resumeItem{${esc(a)}}`)
+    .join('\n');
+}
+
+async function generateResumePDF(data) {
+  // 1. Load LaTeX template
+  const template = await fs.readFile(
+    path.join(__dirname, '../templates/resume.tex'),
+    'utf-8'
+  );
+
+  // 2. Fill placeholders with LaTeX fragments
+  const filled = template
+    .replace('{{SUMMARY}}', esc(data.summary || ''))
+    .replace('{{SKILLS}}', buildSkillsTex(data.skills))
+    .replace('{{EXPERIENCE}}', buildExperienceTex(data.experience))
+    .replace('{{PROJECTS}}', buildProjectsTex(data.projects))
+    .replace('{{EDUCATION}}', buildEducationTex(data.education))
+    .replace('{{ACHIEVEMENTS}}', buildAchievementsTex(data.achievements));
+
+  // 3. Compile via YtoTech LaTeX API (free, no auth)
+  try {
+    const response = await axios.post(
+      'https://latex.ytotech.com/builds/sync',
+      {
+        compiler: 'pdflatex',
+        resources: [
+          {
+            main: true,
+            content: filled,
+          },
+        ],
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        responseType: 'arraybuffer',
+        timeout: 45000,
+      }
+    );
+    return Buffer.from(response.data);
+  } catch (err) {
+    console.error('❌ LaTeX compile failed:', err.message);
+    if (err.response?.data) {
+      console.error('Compiler response:', Buffer.from(err.response.data).toString('utf-8').slice(0, 800));
+    }
+    throw new Error('Failed to compile LaTeX resume');
+  }
+}
+module.exports = { generateCoverLetterPDF,generateResumePDF };

@@ -50,9 +50,11 @@ export interface StatsData {
   rejected: number;
   no_response: number;
 }
-export const generateCoverLetterStandalone = (data: { company: string; role: string; jobDescription: string }) =>
-  api.post(`/cover-letter/generate`, data);
-
+export const generateCoverLetterStandalone = (data: {
+  company?: string;
+  role?: string;
+  jobDescription: string;
+}) => api.post('/cover-letter/generate', data);
 export const downloadCoverLetter = (payload: {
   text: string;
   company?: string;
@@ -68,7 +70,21 @@ export const checkEmails = () =>
   api.post('/jobs/check-emails').then(res => res.data);
 export const generateCoverLetter = (id: string, jobDescription: string) =>
   api.post(`/jobs/${id}/generate-cover-letter`, { jobDescription });
+export const generateResume = (data: {
+  company?: string;
+  role?: string;
+  jobDescription: string;
+}) => api.post('/resume/generate', data);
 
+export const downloadResume = (cvData: any, company?: string, role?: string) =>
+  api.post('/resume/download', { cvData, company, role }, { responseType: 'blob' });
+
+export const sendResume = (data: {
+  cvData: any;
+  to: string;
+  company?: string;
+  role?: string;
+}) => api.post('/resume/send', data);
 export const sendFollowUp = (id: string) =>
   api.post(`/jobs/${id}/follow-up`);
 export const fetchJobs = (params?: Record<string, string>) =>

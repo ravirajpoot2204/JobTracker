@@ -239,13 +239,16 @@ Snippet: ${snippet}
 
 async function analyzeJobDescription(description) {
   const prompt = `Analyze the following job description and return JSON with:
+- "company": the company name (if mentioned, else "Unknown")
+- "role": the job title or role
 - "skillsRequired": array of top 5 skills
 - "interviewTopics": array of 5 topics to prepare
 - "suggestedQuestions": array of 5 likely interview questions
 
 Job Description:
 ${description}
-`;
+
+Return ONLY valid JSON.`;
 
   try {
     const response = await callWithRetry(
@@ -254,15 +257,14 @@ ${description}
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 2500,
+          maxOutputTokens: 2000,
           responseMimeType: 'application/json',
-        }
+        },
       },
       { headers: { 'Content-Type': 'application/json' } }
     );
 
     const content = response.data.candidates[0].content.parts[0].text;
-    console.log('Raw content from Gemini:', content);
     const jsonStr = content.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (error) {
@@ -274,27 +276,65 @@ ${description}
  * Generate a tailored CV summary/skills section based on job description.
  */
 async function generateTailoredCV(baseCV, job) {
-  const prompt = `You are a career coach. Tailor the candidate's CV to the job description.
+  const prompt = `You are a senior career coach. Tailor the candidate's resume to a specific job.
 
 STRICT RULES:
-- Output ONLY a valid JSON object. No markdown, no explanations.
-- The entire CV MUST fit on ONE A4 page.
-- Use bullet points, not paragraphs.
-- Summary: exactly 2 sentences, max 30 words total.
-- Skills: exactly 8 skills, comma-separated, no extra words.
-- Projects: max 2 projects. Each project has "name" and exactly 3 bullet points. Each bullet max 10 words.
-- Experience: max 1 entry with "title", "company", "date", and exactly 2 bullet points. Each bullet max 10 words.
-- Education: only institution, degree, year.
+- Output ONLY valid JSON. No markdown, no explanations.
+- Preserve ALL real facts from the base CV: dates, company names, project names, links, metrics. Do NOT invent anything.
+- Reorder and rephrase bullet points to emphasize the most relevant experience for the job.
+- Keep bullet points short (max 15 words each), action-verb-led, with quantified impact where possible.
+- For each project, keep the EXACT project name and any URL mentioned. Do NOT invent or change URLs.
+- If the base CV contains a URL for a project, copy it verbatim into the "link" field.
+Output JSON schema:
+{
+  "name": "Ravi Rajpoot",
+  "title": "Full Stack Developer | MERN Stack",
+  "contact": {
+    "location": "Lucknow, Uttar Pradesh",
+    "phone": "+91 6388296339",
+    "email": "ravirajpoot2204@gmail.com",
+    "github": "github.com/ravirajpoot2204",
+    "linkedin": "linkedin.com/in/ravirajpoot2204"
+  },
+  "summary": "2-3 sentences tailored to the job",
+  "skills": {
+    "Primary Languages & Stacks": "comma separated",
+    "Additional Languages & Frameworks": "comma separated",
+    "Tools & Methodologies": "comma separated"
+  },
+  "experience": [
+    {
+      "title": "...",
+      "company": "...",
+      "date": "...",
+      "location": "...",
+      "points": ["...", "..."]
+    }
+  ],
+  "projects": [
+    {
+      "name": "...",
+      "tech": "...",
+      "link": "...",
+      "points": ["...", "...", "..."]
+    }
+  ],
+  "education": [
+    { "institution": "...", "degree": "...", "date": "...", "location": "..." }
+  ],
+  "achievements": ["...", "..."],
+  "impact": "one sentence summary line"
+}
 
 Base CV:
 ${baseCV}
 
 Job Information:
-Company: ${job.company}
-Role: ${job.role}
-Snippet: ${job.snippet || 'No snippet available'}
+- Company: ${job.company}
+- Role: ${job.role}
+- Snippet: ${job.snippet || 'Not provided'}
 
-JSON:`;
+Return ONLY the JSON.`;
 
   const response = await callWithRetry(
     `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -302,7 +342,7 @@ JSON:`;
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 2500,
         responseMimeType: 'application/json',
       },
     },
