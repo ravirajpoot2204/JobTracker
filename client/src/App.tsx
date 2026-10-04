@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Dashboard from './components/Dashboard/Dashboard';
 import JobForm from './components/JobForm/JobForm';
 import JobList from './components/JobList/JobList';
