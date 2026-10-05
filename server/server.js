@@ -25,6 +25,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://job-tracker-mytube.vercel.app',
+  'https://jobtrackerrs.netlify.app/',
+  
 ];
 
 app.use(cors({
