@@ -43,4 +43,4 @@ ACHIEVEMENTS & CERTIFICATIONS
 - Resolved 40+ technical issues across video transcoding pipelines, real-time WebSockets, and OAuth flows.
 `;
 
-module.exports = baseCV;
+module.exports = baseCV; 
