@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { fetchJobs, restoreJob, permanentDeleteJob,type JobData } from '../../services/api';
+import {
+  fetchJobs,
+  restoreJob,
+  permanentDeleteJob,
+  protectedCall,
+  type JobData,
+} from '../../services/api';
 
 interface Props {
   onDataChange: () => void;
@@ -25,16 +31,23 @@ const BinView = ({ onDataChange }: Props) => {
   }, []);
 
   const handleRestore = async (id: string) => {
-    await restoreJob(id);
-    onDataChange();
-    loadBin();
+    try {
+      await protectedCall(() => restoreJob(id));
+      onDataChange();
+      loadBin();
+    } catch (err: any) {
+      alert(err.message || 'Restore failed');
+    }
   };
 
   const handlePermanentDelete = async (id: string) => {
-    if (window.confirm('Permanently delete this job? This cannot be undone.')) {
-      await permanentDeleteJob(id);
+    if (!window.confirm('Permanently delete this job? This cannot be undone.')) return;
+    try {
+      await protectedCall(() => permanentDeleteJob(id));
       onDataChange();
       loadBin();
+    } catch (err: any) {
+      alert(err.message || 'Delete failed');
     }
   };
 
@@ -52,11 +65,14 @@ const BinView = ({ onDataChange }: Props) => {
           {binJobs.map((job) => (
             <div key={job._id} className="bg-white rounded-xl shadow-card p-5">
               <h3 className="text-lg font-medium text-gray-900">{job.role}</h3>
-              <p className="text-sm text-gray-600">{job.company} · {job.platform}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Deleted: {job.deletedAt ? new Date(job.deletedAt).toLocaleDateString() : 'Unknown'}
+              <p className="text-sm text-gray-600">
+                {job.company} · {job.platform}
               </p>
-              <div className="mt-4 flex gap-2">
+              <p className="text-xs text-gray-400 mt-1">
+                Deleted:{' '}
+                {job.deletedAt ? new Date(job.deletedAt).toLocaleDateString() : 'Unknown'}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => handleRestore(job._id!)}
                   className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"

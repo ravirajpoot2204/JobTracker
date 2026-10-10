@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { generateResume, downloadResume } from '../../services/api';
 
-const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm";
-const labelClass = "block text-sm font-medium text-gray-700";
+const inputClass =
+  'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
+const labelClass = 'block text-sm font-medium text-gray-700';
 
-const safe = (s: string) => (s || 'Unknown').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
+const safe = (s: string) =>
+  (s || 'Unknown').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
 
 const ResumeGenerator = () => {
   const [company, setCompany] = useState('');
@@ -116,15 +118,27 @@ const ResumeGenerator = () => {
         <button
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? 'Generating...' : 'Generate Resume'}
         </button>
 
         {detected && (
-          <p className="text-sm text-gray-600">
-            Detected: <strong>{detected.role}</strong> at <strong>{detected.company}</strong>
-          </p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+              {detected.role}
+            </span>
+            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">
+              {detected.company}
+            </span>
+          </div>
+        )}
+
+        {cvData?.matchedKeywords?.length > 0 && (
+          <div className="text-xs text-gray-600">
+            <strong>ATS keywords matched:</strong>{' '}
+            <span className="text-gray-700">{cvData.matchedKeywords.join(', ')}</span>
+          </div>
         )}
 
         {cvData && (
@@ -135,7 +149,7 @@ const ResumeGenerator = () => {
             </pre>
             <button
               onClick={handleDownload}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
             >
               Download PDF
             </button>

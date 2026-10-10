@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const adminKey = require('../middleware/adminKey');
 const {
   createJob,
   getJobs,
@@ -15,6 +16,9 @@ const {
 } = require('../controllers/jobController');
 const { checkForApplicationEmails } = require('../services/emailWatcher');
 
+// ---------- Public ----------
+router.get('/', getJobs);
+router.get('/stats', getStats);
 router.post('/', createJob);
 router.post('/check-emails', async (req, res) => {
   try {
@@ -25,30 +29,21 @@ router.post('/check-emails', async (req, res) => {
   }
 });
 
-router.get('/', getJobs);
-router.get('/stats', getStats);
-
+// ---------- Admin-protected ----------
 // Bin
-router.patch('/:id/bin', binJob);
-router.patch('/:id/restore', restoreJob);
-router.delete('/:id/permanent', permanentDeleteJob);
+router.patch('/:id/bin', adminKey, binJob);
+router.patch('/:id/restore', adminKey, restoreJob);
+router.delete('/:id/permanent', adminKey, permanentDeleteJob);
 
-// Status update
-router.patch('/:id/status', updateJobStatus);
+// Status update (drag-and-drop on Kanban)
+router.patch('/:id/status', adminKey, updateJobStatus);
 
-// Cover letter
-router.post('/:id/generate-cover-letter', generateCoverLetterForJob);
-router.get('/:id/cover-letter-pdf', downloadCoverLetterPDF);
-router.post('/download-cover-letter', async (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ message: 'Text required' });
-  const pdfBuffer = await generateCoverLetterPDF(text);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename="CoverLetter.pdf"');
-  res.send(pdfBuffer);
-});
+// Cover letter generation and PDF
+router.post('/:id/generate-cover-letter', adminKey, generateCoverLetterForJob);
+router.get('/:id/cover-letter-pdf', adminKey, downloadCoverLetterPDF);
+
 // Follow-up
-router.post('/:id/follow-up', async (req, res) => {
+router.post('/:id/follow-up', adminKey, async (req, res) => {
   try {
     const result = await sendFollowUp(req.params.id);
     res.json(result);
@@ -57,7 +52,7 @@ router.post('/:id/follow-up', async (req, res) => {
   }
 });
 
-// Optional: JD analyzer
-router.post('/:id/analyze-jd', analyzeJob);
+// JD analyzer
+router.post('/:id/analyze-jd', adminKey, analyzeJob);
 
 module.exports = router;

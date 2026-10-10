@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import { fetchJobs, binJob, generateCoverLetter, sendFollowUp, type JobData } from '../../services/api';
+import {
+  fetchJobs,
+  binJob,
+  generateCoverLetter,
+  sendFollowUp,
+  protectedCall,
+  type JobData,
+} from '../../services/api';
 
 const statusColors: Record<string, string> = {
   saved: 'bg-gray-100 text-gray-800',
@@ -41,9 +48,12 @@ const JobList = () => {
   }, []);
 
   const handleBin = async (id: string) => {
-    if (window.confirm('Move to bin?')) {
-      await binJob(id);
+    if (!window.confirm('Move to bin?')) return;
+    try {
+      await protectedCall(() => binJob(id));
       loadJobs();
+    } catch (err: any) {
+      alert(err.message || 'Failed to bin job');
     }
   };
 
@@ -52,13 +62,12 @@ const JobList = () => {
     setCoverLetterText('');
     setDownloadUrl('');
     try {
-      const res = await generateCoverLetter(id, jobDescriptionInput);
+      const res = await protectedCall(() => generateCoverLetter(id, jobDescriptionInput));
       setCoverLetterText(res.data.coverLetterText);
       setDownloadUrl(res.data.downloadUrl);
       setExpandedJobId(id);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to generate cover letter');
+    } catch (err: any) {
+      alert(err.message || 'Failed to generate cover letter');
     } finally {
       setGeneratingId(null);
     }
@@ -66,12 +75,11 @@ const JobList = () => {
 
   const handleSendFollowUp = async (id: string) => {
     try {
-      await sendFollowUp(id);
+      await protectedCall(() => sendFollowUp(id));
       alert('Follow-up sent');
       loadJobs();
-    } catch (err) {
-      console.error(err);
-      alert('Follow-up failed');
+    } catch (err: any) {
+      alert(err.message || 'Follow-up failed');
     }
   };
 
@@ -87,15 +95,25 @@ const JobList = () => {
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {jobs.map((job) => {
-            const gmailLink = job.emailLog?.find(log => log.direction === 'inbound')?.link || '';
+            const gmailLink =
+              job.emailLog?.find((log) => log.direction === 'inbound')?.link || '';
             return (
-              <div key={job._id} className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-5">
+              <div
+                key={job._id}
+                className="bg-white rounded-xl shadow-card hover:shadow-card-hover transition-shadow p-5"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{job.role}</h3>
-                    <p className="text-sm text-gray-600">{job.company} · {job.platform}</p>
+                    <p className="text-sm text-gray-600">
+                      {job.company} · {job.platform}
+                    </p>
                   </div>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusColors[job.status] || 'bg-gray-100 text-gray-800'}`}>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      statusColors[job.status] || 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
                     {job.status.replace(/_/g, ' ')}
                   </span>
                 </div>
@@ -107,19 +125,21 @@ const JobList = () => {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     onClick={() => handleSendFollowUp(job._id!)}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     📧 Follow-up
                   </button>
                   <button
-                    onClick={() => setExpandedJobId(expandedJobId === job._id ? null : job._id!)}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    onClick={() =>
+                      setExpandedJobId(expandedJobId === job._id ? null : job._id!)
+                    }
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     {expandedJobId === job._id ? 'Hide Cover Letter' : 'Generate Cover Letter'}
                   </button>
                   <button
                     onClick={() => handleBin(job._id!)}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
                   >
                     🗑 Bin
                   </button>
@@ -131,7 +151,7 @@ const JobList = () => {
                         alert('No email link available for this job.');
                       }
                     }}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     ✉️ Open Email
                   </button>
@@ -149,7 +169,7 @@ const JobList = () => {
                     <button
                       onClick={() => handleGenerateCoverLetter(job._id!)}
                       disabled={generatingId === job._id}
-                      className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      className="mt-2 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
                     >
                       {generatingId === job._id ? 'Generating...' : 'Generate'}
                     </button>
@@ -160,7 +180,7 @@ const JobList = () => {
                     )}
                     {downloadUrl && (
                       <a
-                        href={`http://localhost:5000${downloadUrl}`}
+                        href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}${downloadUrl.replace('/api', '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-blue-600 hover:text-blue-700 font-medium"

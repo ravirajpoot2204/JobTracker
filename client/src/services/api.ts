@@ -4,6 +4,40 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
 });
 
+// ---- Admin key handling ----
+api.interceptors.request.use((config) => {
+  const key = localStorage.getItem('adminKey');
+  if (key) {
+    config.headers = config.headers || {};
+    (config.headers as any)['x-admin-key'] = key;
+  }
+  return config;
+});
+
+export const ensureAdminKey = (): string | null => {
+  let key = localStorage.getItem('adminKey');
+  if (!key) {
+    key = window.prompt('Enter admin key to perform this action:');
+    if (!key) return null;
+    localStorage.setItem('adminKey', key);
+  }
+  return key;
+};
+
+export const protectedCall = async <T,>(fn: () => Promise<T>): Promise<T> => {
+  if (!ensureAdminKey()) throw new Error('Admin key required');
+  try {
+    return await fn();
+  } catch (err: any) {
+    if (err?.response?.status === 403) {
+      localStorage.removeItem('adminKey');
+      throw new Error('Invalid admin key. Please try again.');
+    }
+    throw err;
+  }
+};
+
+// ---- Types ----
 export interface JobData {
   _id?: string;
   company: string;
@@ -50,11 +84,14 @@ export interface StatsData {
   rejected: number;
   no_response: number;
 }
+
+// ---- Cover Letter ----
 export const generateCoverLetterStandalone = (data: {
   company?: string;
   role?: string;
   jobDescription: string;
 }) => api.post('/cover-letter/generate', data);
+
 export const downloadCoverLetter = (payload: {
   text: string;
   company?: string;
@@ -64,12 +101,9 @@ export const downloadCoverLetter = (payload: {
   city?: string;
   state?: string;
   zip?: string;
-}) =>
-  api.post(`/cover-letter/download`, payload, { responseType: 'blob' });
-export const checkEmails = () =>
-  api.post('/jobs/check-emails').then(res => res.data);
-export const generateCoverLetter = (id: string, jobDescription: string) =>
-  api.post(`/jobs/${id}/generate-cover-letter`, { jobDescription });
+}) => api.post('/cover-letter/download', payload, { responseType: 'blob' });
+
+// ---- Resume ----
 export const generateResume = (data: {
   company?: string;
   role?: string;
@@ -85,16 +119,24 @@ export const sendResume = (data: {
   company?: string;
   role?: string;
 }) => api.post('/resume/send', data);
-export const sendFollowUp = (id: string) =>
-  api.post(`/jobs/${id}/follow-up`);
+
+// ---- Jobs ----
 export const fetchJobs = (params?: Record<string, string>) =>
   api.get<JobData[]>('/jobs', { params });
 
 export const addJob = (jobData: Partial<JobData>) =>
   api.post<JobData>('/jobs', jobData);
 
-export const fetchStats = () =>
-  api.get<StatsData>('/jobs/stats');
+export const fetchStats = () => api.get<StatsData>('/jobs/stats');
+
+export const checkEmails = () =>
+  api.post('/jobs/check-emails').then((res) => res.data);
+
+export const generateCoverLetter = (id: string, jobDescription: string) =>
+  api.post(`/jobs/${id}/generate-cover-letter`, { jobDescription });
+
+export const sendFollowUp = (id: string) =>
+  api.post(`/jobs/${id}/follow-up`);
 
 export const updateJobStatus = (id: string, status: string) =>
   api.patch<JobData>(`/jobs/${id}/status`, { status });

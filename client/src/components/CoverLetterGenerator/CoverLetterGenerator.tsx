@@ -5,12 +5,18 @@ const inputClass =
   'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
 const labelClass = 'block text-sm font-medium text-gray-700';
 
+const safe = (s: string) => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
+
 const CoverLetterGenerator = () => {
   const [company, setCompany] = useState('');
   const [role, setRole] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [coverLetterText, setCoverLetterText] = useState('');
-  const [detected, setDetected] = useState<{ company: string; role: string } | null>(null);
+  const [detected, setDetected] = useState<{
+    company: string;
+    role: string;
+    location?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [recipientName, setRecipientName] = useState('');
@@ -19,83 +25,87 @@ const CoverLetterGenerator = () => {
   const [state, setState] = useState('');
   const [zip, setZip] = useState('');
 
-const handleGenerate = async () => {
-  if (!jobDescription) return alert('Please paste the job description');
-  setLoading(true);
-  try {
-    const res = await generateCoverLetterStandalone({
-      company: company.trim() || undefined,
-      role: role.trim() || undefined,
-      jobDescription,
-    });
-
-    // Handle "AI couldn't detect" case
-    if (res.data.needsInput) {
-      let c = company;
-      let r = role;
-      if (res.data.missing.company) {
-        const input = window.prompt('Could not detect company name. Please enter it:');
-        if (!input) return;
-        c = input;
-        setCompany(input);
-      }
-      if (res.data.missing.role) {
-        const input = window.prompt('Could not detect role. Please enter it:');
-        if (!input) return;
-        r = input;
-        setRole(input);
-      }
-      // Retry with the values
-      const retry = await generateCoverLetterStandalone({
-        company: c,
-        role: r,
+  const handleGenerate = async () => {
+    if (!jobDescription) return alert('Please paste the job description');
+    setLoading(true);
+    try {
+      const res = await generateCoverLetterStandalone({
+        company: company.trim() || undefined,
+        role: role.trim() || undefined,
         jobDescription,
       });
-      setCoverLetterText(retry.data.coverLetterText);
-      setDetected({ company: retry.data.company, role: retry.data.role });
-      return;
+
+      if (res.data.needsInput) {
+        let c = company;
+        let r = role;
+        if (res.data.missing.company) {
+          const input = window.prompt('Could not detect company name. Please enter it:');
+          if (!input) return;
+          c = input;
+          setCompany(input);
+        }
+        if (res.data.missing.role) {
+          const input = window.prompt('Could not detect role. Please enter it:');
+          if (!input) return;
+          r = input;
+          setRole(input);
+        }
+        const retry = await generateCoverLetterStandalone({
+          company: c,
+          role: r,
+          jobDescription,
+        });
+        setCoverLetterText(retry.data.coverLetterText);
+        setDetected({
+          company: retry.data.company,
+          role: retry.data.role,
+          location: retry.data.location,
+        });
+        return;
+      }
+
+      setCoverLetterText(res.data.coverLetterText);
+      setDetected({
+        company: res.data.company,
+        role: res.data.role,
+        location: res.data.location,
+      });
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate cover letter');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setCoverLetterText(res.data.coverLetterText);
-    setDetected({ company: res.data.company, role: res.data.role });
-  } catch (err) {
-    console.error(err);
-    alert('Failed to generate cover letter');
-  } finally {
-    setLoading(false);
-  }
-};
-
-const safe = (s: string) => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
-
-const handleDownload = async () => {
-  if (!coverLetterText) return;
-  try {
-    const res = await downloadCoverLetter({
-      text: coverLetterText,
-      company: detected?.company || company,
-      role: detected?.role || role,
-      recipientName,
-      street,
-      city,
-      state,
-      zip,
-    });
-    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-    const link = document.createElement('a');
-    const cName = safe(detected?.company || company || 'Company');
-    const rName = safe(detected?.role || role || 'Role');
-    link.href = url;
-    link.setAttribute('download', `Ravi_Rajpoot_CoverLetter_${cName}_${rName}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error(err);
-    alert('Download failed');
-  }
-};
+  const handleDownload = async () => {
+    if (!coverLetterText) return;
+    try {
+      const res = await downloadCoverLetter({
+        text: coverLetterText,
+        company: detected?.company || company,
+        role: detected?.role || role,
+        recipientName,
+        street,
+        city,
+        state,
+        zip,
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      const cName = safe(detected?.company || company || 'Company');
+      const rName = safe(detected?.role || role || 'Role');
+      link.href = url;
+      link.setAttribute('download', `Ravi_Rajpoot_CoverLetter_${cName}_${rName}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Download failed');
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -142,23 +152,48 @@ const handleDownload = async () => {
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Recipient Name</label>
-              <input type="text" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className={inputClass} />
+              <input
+                type="text"
+                value={recipientName}
+                onChange={(e) => setRecipientName(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>Street</label>
-              <input type="text" value={street} onChange={(e) => setStreet(e.target.value)} className={inputClass} />
+              <input
+                type="text"
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>City</label>
-              <input type="text" value={city} onChange={(e) => setCity(e.target.value)} className={inputClass} />
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>State</label>
-              <input type="text" value={state} onChange={(e) => setState(e.target.value)} className={inputClass} />
+              <input
+                type="text"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className={labelClass}>ZIP</label>
-              <input type="text" value={zip} onChange={(e) => setZip(e.target.value)} className={inputClass} />
+              <input
+                type="text"
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                className={inputClass}
+              />
             </div>
           </div>
         </details>
@@ -172,9 +207,19 @@ const handleDownload = async () => {
         </button>
 
         {detected && (
-          <p className="text-sm text-gray-600">
-            Detected: <strong>{detected.role}</strong> at <strong>{detected.company}</strong>
-          </p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+              {detected.role}
+            </span>
+            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">
+              {detected.company}
+            </span>
+            {detected.location && detected.location !== 'Not specified' && (
+              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                📍 {detected.location}
+              </span>
+            )}
+          </div>
         )}
 
         {coverLetterText && (

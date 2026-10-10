@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { fetchJobs, updateJobStatus,type JobData } from '../../services/api';
+import { fetchJobs, updateJobStatus, protectedCall, type JobData } from '../../services/api';
 
 const statuses = [
   'saved',
@@ -63,17 +63,16 @@ const KanbanBoard = ({ onDataChange }: Props) => {
     const jobId = draggableId;
     const newStatus = destination.droppableId;
 
+    // Optimistic update
     setJobs((prev) =>
-      prev.map((job) =>
-        job._id === jobId ? { ...job, status: newStatus } : job
-      )
+      prev.map((job) => (job._id === jobId ? { ...job, status: newStatus } : job))
     );
 
     try {
-      await updateJobStatus(jobId, newStatus);
+      await protectedCall(() => updateJobStatus(jobId, newStatus));
       onDataChange();
-    } catch (err) {
-      console.error('Failed to update status', err);
+    } catch (err: any) {
+      alert(err.message || 'Failed to update status');
       loadJobs();
     }
   };
@@ -92,7 +91,9 @@ const KanbanBoard = ({ onDataChange }: Props) => {
                 className={`${columnColors[status]} rounded-xl w-64 flex-shrink-0 p-3`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-gray-700">{status.replace(/_/g, ' ')}</h3>
+                  <h3 className="text-sm font-semibold text-gray-700">
+                    {status.replace(/_/g, ' ')}
+                  </h3>
                   <span className="text-xs bg-white rounded-full px-2 py-0.5 shadow-sm">
                     {jobs.filter((job) => job.status === status).length}
                   </span>

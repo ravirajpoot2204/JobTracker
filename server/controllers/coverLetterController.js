@@ -11,14 +11,16 @@ const generateCoverLetterText = async (req, res) => {
 
     let finalCompany = company && company.trim();
     let finalRole = role && role.trim();
+    let finalLocation = 'Not specified';
     let extracted = false;
 
+    // Extract missing info from JD
     if (!finalCompany || !finalRole) {
       const analysis = await analyzeJobDescription(jobDescription);
       const aiCompany = analysis?.company;
       const aiRole = analysis?.role;
+      if (analysis?.location) finalLocation = analysis.location;
 
-      // Detect "not found"
       const missingCompany =
         !aiCompany ||
         aiCompany === 'Unknown' ||
@@ -32,11 +34,9 @@ const generateCoverLetterText = async (req, res) => {
       if (!finalCompany) finalCompany = missingCompany ? '' : aiCompany;
       if (!finalRole) finalRole = missingRole ? '' : aiRole;
 
-      if (!finalCompany || !finalRole) extracted = false;
-      else extracted = true;
+      extracted = Boolean(finalCompany && finalRole);
     }
 
-    // If still missing, return early and ask frontend for input
     if (!finalCompany || !finalRole) {
       return res.status(200).json({
         needsInput: true,
@@ -48,10 +48,12 @@ const generateCoverLetterText = async (req, res) => {
       });
     }
 
+    // Pass location to the AI
     const coverLetterData = await generateCoverLetter(baseCV, {
       company: finalCompany,
       role: finalRole,
       snippet: jobDescription,
+      location: finalLocation,
     });
 
     const text = coverLetterData.coverLetterText || '';
@@ -61,6 +63,7 @@ const generateCoverLetterText = async (req, res) => {
       coverLetterText: text,
       company: finalCompany,
       role: finalRole,
+      location: finalLocation,
       extracted,
     });
   } catch (err) {
@@ -85,8 +88,11 @@ const downloadCoverLetter = async (req, res) => {
       zip: zip || '',
     });
 
+    const safeName = (s) => (s || '').replace(/[^a-z0-9]+/gi, '_') || 'Unknown';
+    const filename = `Ravi_Rajpoot_CoverLetter_${safeName(company)}_${safeName(role)}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Ravi_Rajpoot_CoverLetter_${(company || 'Company').replace(/[^a-z0-9]+/gi, '_')}_${(role || 'Role').replace(/[^a-z0-9]+/gi, '_')}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(pdfBuffer);
   } catch (err) {
     console.error('❌ cover letter download error:', err.message);

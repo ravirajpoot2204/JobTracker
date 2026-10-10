@@ -244,6 +244,7 @@ async function analyzeJobDescription(description) {
 - "skillsRequired": array of top 5 skills
 - "interviewTopics": array of 5 topics to prepare
 - "suggestedQuestions": array of 5 likely interview questions
+- "location": the job location if mentioned (e.g., "Bangalore", "Remote", "Hybrid"), else "Not specified"
 
 Job Description:
 ${description}
@@ -285,6 +286,23 @@ STRICT RULES:
 - Keep bullet points short (max 15 words each), action-verb-led, with quantified impact where possible.
 - For each project, keep the EXACT project name and any URL mentioned. Do NOT invent or change URLs.
 - If the base CV contains a URL for a project, copy it verbatim into the "link" field.
+- For each project, if the base CV contains a "Note:" line, you MUST preserve it
+  at the end of that project's points array, prefixed with "Note:".
+- If a project has "Demo credentials" in the base CV, include them as the LAST
+  bullet point of that project.
+- Never invent or omit demo credentials or testing notes.
+- Before writing, extract the TOP 10 keywords/skills from the job description.
+- Ensure at least 8 of those keywords appear naturally in the summary, skills, or
+  project bullets. Do NOT keyword-stuff — use them only where honest.
+
+LENGTH CONSTRAINTS (STRICT):
+- Summary: 2-3 sentences only.
+- Skills: exactly 3 groups (Primary / Additional / Tools), each comma-separated.
+- Experience: max 3 bullets total.
+- Projects: exactly 3 projects, max 4 bullets each.
+- Achievements: max 3 bullets.
+- Total content must fit on ONE A4 page.
+
 Output JSON schema:
 {
   "name": "Ravi Rajpoot",
@@ -297,32 +315,22 @@ Output JSON schema:
     "linkedin": "linkedin.com/in/ravirajpoot2204"
   },
   "summary": "2-3 sentences tailored to the job",
+  "matchedKeywords": ["keyword1", "keyword2", "..."],
   "skills": {
     "Primary Languages & Stacks": "comma separated",
     "Additional Languages & Frameworks": "comma separated",
     "Tools & Methodologies": "comma separated"
   },
   "experience": [
-    {
-      "title": "...",
-      "company": "...",
-      "date": "...",
-      "location": "...",
-      "points": ["...", "..."]
-    }
+    { "title": "...", "company": "...", "date": "...", "location": "...", "points": ["..."] }
   ],
   "projects": [
-    {
-      "name": "...",
-      "tech": "...",
-      "link": "...",
-      "points": ["...", "...", "..."]
-    }
+    { "name": "...", "tech": "...", "link": "...", "points": ["..."] }
   ],
   "education": [
     { "institution": "...", "degree": "...", "date": "...", "location": "..." }
   ],
-  "achievements": ["...", "..."],
+  "achievements": ["..."],
   "impact": "one sentence summary line"
 }
 
@@ -342,7 +350,7 @@ Return ONLY the JSON.`;
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.3,
-        maxOutputTokens: 2500,
+        maxOutputTokens: 3000,
         responseMimeType: 'application/json',
       },
     },
@@ -360,52 +368,41 @@ Return ONLY the JSON.`;
 
 
 async function generateCoverLetter(baseCV, job) {
-  // Build location preference line
-  let locationLine = '';
-  if (job.location && job.location.toLowerCase().includes('remote')) {
+  const location = job.location || 'Not specified';
+  const lower = location.toLowerCase();
+
+  let locationLine = 'I am open to relocating and joining immediately.';
+  if (lower.includes('remote')) {
     locationLine = 'I am available for remote work and open to hybrid arrangements as needed.';
-  } else if (job.location && job.location.toLowerCase().includes('hybrid')) {
+  } else if (lower.includes('hybrid')) {
     locationLine = 'I am open to hybrid work and can relocate if required.';
-  } else if (job.location) {
-    locationLine = `I am open to relocating to ${job.location} and joining immediately.`;
-  } else {
-    locationLine = 'I am open to relocating and joining immediately.';
+  } else if (location && location !== 'Not specified') {
+    locationLine = `I am open to relocating to ${location} and joining immediately.`;
   }
 
   const prompt = `You are a professional cover letter writer. Write a concise, tailored cover letter body.
 
-**STRICT RULES:**
-1. Do NOT include any candidate name, contact information, date, address, or signature.
+STRICT RULES:
+1. Do NOT include candidate name, contact info, date, address, or signature.
 2. Start directly with "Dear Hiring Team,".
 3. Write exactly 3 short paragraphs (total under 200 words).
-4. **Show the match:** Explicitly connect the candidate's achievements (e.g., YouTube Clone project, 40+ issues solved) to the job requirements. Explain WHY the candidate is a good fit for THIS role at THIS company.
-5. **Show enthusiasm:** Include a line about why the candidate is interested in the company (e.g., their scale, products, engineering culture). Mention the company name when doing so.
-6. **Be specific:** Use quantifiable achievements from the candidate's background when they align with the job. Examples: reduced bandwidth usage by 40%, 99% test payment success rate, 40+ technical issues resolved, 5+ hours/week saved. Do NOT invent numbers.
-7. Use a professional, confident tone. Avoid generic phrases like "I am writing to express my strong interest".
-8. End the body with a call to action like "I would welcome the opportunity to discuss how I can contribute to your team."
-9. **Add location preference:** After the call to action, include this exact line (with the appropriate option based on the job):
-   - For remote jobs: "I am available for remote work and open to hybrid arrangements as needed."
-   - For hybrid jobs: "I am open to hybrid work and can relocate if required."
-   - For on-site jobs: "I am open to relocating to [location] and joining immediately."
-   - For unknown: "I am open to relocating and joining immediately."
-10. Output plain text only, no JSON, no markdown.
+4. Paragraph 1: Hook + why THIS company. Reference ONE specific detail from the job description (a product, value, technology, or mission mentioned). This proves you read the JD.
+5. Paragraph 2: Connect the candidate's achievements to the job requirements. Use quantifiable metrics (40% bandwidth reduction, 99% payment success rate, 40+ issues resolved, 5+ hours/week saved). Do NOT invent numbers.
+6. Paragraph 3: Call to action: "I would welcome the opportunity to discuss how I can contribute to your team."
+7. After paragraph 3, add this exact location line: "${locationLine}"
+8. No generic phrases like "I am writing to express my strong interest".
+9. Output plain text only, no JSON, no markdown.
 
-**Candidate CV (for reference only):**
+Candidate CV (reference only):
 ${baseCV}
 
-**Job Information:**
+Job Information:
 - Company: ${job.company}
 - Role: ${job.role}
 - Description Snippet: ${job.snippet || 'Not provided'}
-- Location: ${job.location || 'Not specified'}
+- Location: ${location}
 
-**Instructions:**
-1. In paragraph 1: Start with a hook. Say why you're interested in THIS company.
-2. In paragraph 2: Connect your specific achievements to their requirements. Show the match.
-3. In paragraph 3: Call to action.
-4. After paragraph 3, add the location line.
-
-**Generate the cover letter body now:`;
+Generate the cover letter body now:`;
 
   const response = await callWithRetry(
     `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
