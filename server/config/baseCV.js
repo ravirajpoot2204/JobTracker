@@ -25,7 +25,7 @@ YouTube Clone – Live Streaming Platform | MERN, Redis, Socket.IO | https://you
 - Integrated Razorpay payment gateway for Super Chat feature, achieving a 99% test payment success rate.
 - Scaled real-time chat functionality using Socket.IO to support 100+ concurrent simulated users.
 
-Job Tracker – Personal Productivity Tool | MERN, Gmail API, Gemini AI | https://github.com/ravirajpoot2204
+Job Tracker – Personal Productivity Tool | MERN, Gmail API, Gemini AI | https://jobtrackerrs.netlify.app/
 - Designed and built a private, self-hosted utility tool to automate personal job application tracking and cover letter generation.
 - Integrated Gmail API with Gemini AI, saving 5+ hours/week of manual job search workflow.
 - Achieved 85% accuracy in parsing company and role information directly from raw email text.
