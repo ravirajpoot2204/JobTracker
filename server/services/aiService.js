@@ -368,20 +368,26 @@ Return ONLY the JSON.`;
 
 
 async function generateCoverLetter(baseCV, job) {
-  const location = job.location || 'Not specified';
+  const location = (job.location || '').trim();
   const lower = location.toLowerCase();
+  const USER_CITY = 'lucknow'; // candidate's current city
 
   let locationLine = 'I am open to relocating and joining immediately.';
-  if (lower.includes('remote')) {
+
+  if (!location || lower === 'not specified') {
+    locationLine = 'I am open to relocating and joining immediately.';
+  } else if (lower.includes('remote')) {
     locationLine = 'I am available for remote work and open to hybrid arrangements as needed.';
   } else if (lower.includes('hybrid')) {
     locationLine = 'I am open to hybrid work and can relocate if required.';
-  } else if (location && location !== 'Not specified') {
+  } else if (lower.includes(USER_CITY)) {
+    locationLine = 'I am based in Lucknow and available to join immediately.';
+  } else {
     locationLine = `I am open to relocating to ${location} and joining immediately.`;
   }
-
   const prompt = `You are a professional cover letter writer. Write a concise, tailored cover letter body.
 
+STRICT RULES:
 STRICT RULES:
 1. Do NOT include candidate name, contact info, date, address, or signature.
 2. Start directly with "Dear Hiring Team,".
@@ -389,7 +395,7 @@ STRICT RULES:
 4. Paragraph 1: Hook + why THIS company. Reference ONE specific detail from the job description (a product, value, technology, or mission mentioned). This proves you read the JD.
 5. Paragraph 2: Connect the candidate's achievements to the job requirements. Use quantifiable metrics (40% bandwidth reduction, 99% payment success rate, 40+ issues resolved, 5+ hours/week saved). Do NOT invent numbers.
 6. Paragraph 3: Call to action: "I would welcome the opportunity to discuss how I can contribute to your team."
-7. After paragraph 3, add this exact location line: "${locationLine}"
+7. End the letter with this EXACT location line (do not modify or duplicate it): "${locationLine}"
 8. No generic phrases like "I am writing to express my strong interest".
 9. Output plain text only, no JSON, no markdown.
 
