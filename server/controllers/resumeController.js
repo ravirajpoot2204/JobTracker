@@ -8,7 +8,7 @@ const safe = (s) => (s || 'Unknown').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_
 // Known correct links for each project (overrides whatever AI produces)
 const PROJECT_LINKS = {
   'youtube clone': 'https://youtubeclonesss.netlify.app',
-  'job tracker': 'https://github.com/ravirajpoot2204',
+  'job tracker': 'https://jobtrackerrs.netlify.app/',
   'lead management': 'https://lead-manager-eta-black.vercel.app',
 };
 
