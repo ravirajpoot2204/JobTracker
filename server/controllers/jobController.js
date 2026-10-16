@@ -246,7 +246,38 @@ const analyzeJob = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const autoAddJob = async (req, res) => {
+  try {
+    const { company, role, platform = 'Manual', status = 'saved', notes = '' } = req.body;
+    if (!company || !role) {
+      return res.status(400).json({ message: 'Company and role required' });
+    }
 
+    // Avoid duplicates
+    const existing = await Job.findOne({
+      company,
+      role,
+      deleted: { $ne: true },
+    });
+    if (existing) {
+      return res.json({ job: existing, created: false });
+    }
+
+    const job = await Job.create({
+      company,
+      role,
+      platform,
+      status,
+      notes: notes || 'Auto-added from document generator',
+      appliedDate: new Date(),
+    });
+
+    res.json({ job, created: true });
+  } catch (err) {
+    console.error('❌ autoAddJob error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
 module.exports = {
   createJob,
   getJobs,
@@ -259,4 +290,5 @@ module.exports = {
   analyzeJob,
   generateCoverLetterForJob,
   downloadCoverLetterPDF,
+  autoAddJob,
 };
