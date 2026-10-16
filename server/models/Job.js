@@ -6,6 +6,7 @@ const jobSchema = new mongoose.Schema(
     role: { type: String, required: true },
     platform: { type: String, required: true },
     url: { type: String },
+    
      contactEmails: { type: [String], default: [] },
    jobDescription: { type: String, default: '' },
    coverLetterText: { type: String, default: '' },
@@ -35,6 +36,8 @@ const jobSchema = new mongoose.Schema(
     tags: [String],
     sourceEmailId: { type: String },
     cvTailoredLink: { type: String },
+    atsScore: { type: Number, default: null },
+missingKeywords: { type: [String], default: [] },
     jdSnapshot: {
       description: String,
       skillsRequired: [String],

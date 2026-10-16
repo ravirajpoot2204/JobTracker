@@ -22,24 +22,7 @@ async function callWithRetry(url, data, headers, retries = 3) {
   }
 }
 
-function safeParseJSON(text) {
-  if (!text) throw new Error('Empty response from Gemini');
-  const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
-  let parsed;
-  try {
-    if (start !== -1 && end !== -1 && start < end) {
-      parsed = JSON.parse(cleaned.slice(start, end + 1));
-    } else {
-      parsed = JSON.parse(cleaned);
-    }
-    return parsed;
-  } catch (error) {
-    console.error('Raw Gemini content:', cleaned.slice(0, 500));
-    throw new Error(`Failed to parse JSON from Gemini: ${error.message}`);
-  }
-}
+
 function extractJSON(text) {
   if (!text) return {};
   const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -63,8 +46,32 @@ From: ${e.from}
 Snippet: ${e.snippet}`
   ).join('\n\n');
 
-  const prompt = `You are a job application email parser. For each email below, extract company name, job role, and platform. Return a JSON array where each object has keys: "company", "role", "platform". If platform cannot be determined, use "Other".
+ const prompt = `You are a job application email parser for a job tracker.
 
+For each email below, extract:
+- "company": the hiring company name. If not clear, use the sender's domain name (e.g., "amazon" from "no-reply@amazon.com"). If still unclear, use "Unknown".
+- "role": the job title. Look in the subject line first. If not found, use "Unknown".
+- "platform": one of "LinkedIn", "Naukri", "Internshala", "Wellfound", "Indeed", "Other". Detect from the sender email domain.
+- "status": one of "applied", "viewed", "interview", "rejected", "offer". Detect from subject/snippet wording.
+
+EXAMPLES:
+
+Email: "Your application to Amazon"
+From: no-reply@amazon.com
+Snippet: "Thank you for applying to the SDE role."
+Output: { "company": "Amazon", "role": "SDE", "platform": "Other", "status": "applied" }
+
+Email: "Interview invitation for Frontend Developer at Flipkart"
+From: jobs@naukri.com
+Snippet: "We'd like to schedule an interview."
+Output: { "company": "Flipkart", "role": "Frontend Developer", "platform": "Naukri", "status": "interview" }
+
+RULES:
+- Return a JSON ARRAY with one object per email, in the same order.
+- Do NOT wrap in markdown. Return ONLY the array.
+- If a field cannot be determined, use "Unknown" (except "platform" → "Other" and "status" → "applied").
+
+Emails:
 ${emailListText}
 
 Return ONLY the JSON array.`;
@@ -199,15 +206,28 @@ function fallbackParseEmail(subject, from, snippet = '') {
   return { company, role, platform };
 }
 async function parseJobEmail(subject, from, snippet = '') {
-  const prompt = `Extract company name, job role, and platform from the email details.
-Return JSON only: { "company": "...", "role": "...", "platform": "..." }
-If platform cannot be determined, use "Other".
+ const prompt = `Extract structured data from this job-related email.
 
+Return JSON only with these keys:
+{
+  "company": "hiring company name or 'Unknown'",
+  "role": "job title or 'Unknown'",
+  "platform": "LinkedIn | Naukri | Internshala | Wellfound | Indeed | Other",
+  "status": "applied | viewed | interview | rejected | offer",
+  "recruiterEmail": "email address if mentioned, else null",
+  "location": "city or 'Remote' if mentioned, else null"
+}
+
+RULES:
+- Company: prefer the hiring company, not the job board. If email is from no-reply@linkedin.com, company is NOT LinkedIn.
+- Platform: detect from the sender domain (linkedin.com → LinkedIn, naukri.com → Naukri).
+- Status: infer from wording. "Thank you for applying" → applied. "We regret to inform" → rejected. "Interview" → interview.
+- Do NOT invent data. Use null for missing fields.
+
+Email:
 Subject: ${subject}
 From: ${from}
-Snippet: ${snippet}
-`;
-
+Snippet: ${snippet}`;
   try {
     const response = await callWithRetry(
       `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -238,17 +258,26 @@ Snippet: ${snippet}
 }
 
 async function analyzeJobDescription(description) {
-  const prompt = `Analyze the following job description and return JSON with:
-- "company": the company name (if mentioned, else "Unknown")
-- "role": the job title or role
-- "skillsRequired": array of top 5 skills
-- "interviewTopics": array of 5 topics to prepare
-- "suggestedQuestions": array of 5 likely interview questions
-- "location": the job location if mentioned (e.g., "Bangalore", "Remote", "Hybrid"), else "Not specified"
+ const prompt = `Analyze this job description as a technical recruiter.
+
+Return JSON ONLY:
+{
+  "company": "company name or 'Unknown'",
+  "role": "job title",
+  "location": "city / 'Remote' / 'Hybrid' / 'Not specified'",
+  "experienceRequired": "e.g., '0-2 years', '3+ years', 'Fresher'",
+  "skillsRequired": ["top 5 must-have skills"],
+  "niceToHave": ["top 3 bonus skills"],
+  "interviewTopics": ["5 topics to prepare"],
+  "suggestedQuestions": ["5 likely interview questions"],
+  "shouldApply": true,
+  "matchReason": "one sentence explaining why or why not"
+}
+
+For "shouldApply": return true if the role is Fresher / 0-2 years / Internship. Return false if it requires 3+ years or a specialized domain (LIMS, SAP, .NET, etc.) that the candidate does not have.
 
 Job Description:
 ${description}
-
 Return ONLY valid JSON.`;
 
   try {
@@ -342,7 +371,17 @@ Job Information:
 - Role: ${job.role}
 - Snippet: ${job.snippet || 'Not provided'}
 
+BEFORE returning, self-check:
+1. Did you preserve every project's link exactly from the base CV?
+2. Did you include any "Note:" lines from the base CV?
+3. Do at least 8 of the matchedKeywords appear in the output?
+4. Is the "summary" between 2-3 sentences (not more)?
+5. Does the output fit one A4 page?
+"atsScore": 85,
+"missingKeywords": ["TypeScript", "Docker"]
+If any answer is NO, fix it before returning.
 Return ONLY the JSON.`;
+
 
   const response = await callWithRetry(
     `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
@@ -386,8 +425,7 @@ async function generateCoverLetter(baseCV, job) {
     locationLine = `I am open to relocating to ${location} and joining immediately.`;
   }
   const prompt = `You are a professional cover letter writer. Write a concise, tailored cover letter body.
-
-STRICT RULES:
+  
 STRICT RULES:
 1. Do NOT include candidate name, contact info, date, address, or signature.
 2. Start directly with "Dear Hiring Team,".
@@ -398,7 +436,10 @@ STRICT RULES:
 7. End the letter with this EXACT location line (do not modify or duplicate it): "${locationLine}"
 8. No generic phrases like "I am writing to express my strong interest".
 9. Output plain text only, no JSON, no markdown.
-
+ADDITIONAL CHECKS:
+- In paragraph 1, you MUST quote or paraphrase one specific word/phrase from the job description (e.g., the product name, the tech, or the mission). Wrap it in quotes so it's clear you read the JD.
+- In paragraph 2, mention ONLY skills the candidate actually has (from the CV). Do NOT claim Docker, AWS, Kubernetes, or TypeScript unless they appear in the CV.
+- If the JD mentions a skill the candidate does NOT have, do NOT apologize for it. Just skip it.
 Candidate CV (reference only):
 ${baseCV}
 
@@ -430,13 +471,26 @@ Generate the cover letter body now:`;
  * Proofread a document and return corrected text plus issues found.
  */
 async function proofreadDocument(text) {
-  const prompt = `Proofread the following text. Correct any grammar, spelling, or punctuation errors. If any important information is missing, add a note. Return JSON with:
-- "correctedText": the corrected text
-- "issues": array of strings describing issues found
+const prompt = `Proofread the following text.
+
+Return JSON ONLY with:
+{
+  "correctedText": "the fully corrected version",
+  "issues": [
+    { "type": "grammar|spelling|punctuation|clarity", "original": "...", "fixed": "..." }
+  ],
+  "summary": "one sentence describing the overall quality"
+}
+
+RULES:
+- Do NOT change the meaning.
+- Do NOT change names, dates, numbers, or URLs.
+- Keep the tone professional.
+- If no issues found, return an empty array.
 
 Text:
-${text}
-`;
+${text}`;
+;
 
   const response = await callWithRetry(
     `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,

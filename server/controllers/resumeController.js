@@ -2,7 +2,7 @@ const { generateTailoredCV, analyzeJobDescription } = require('../services/aiSer
 const { generateResumePDF } = require('../services/pdfService');
 const { sendEmailWithAttachment } = require('../services/gmailService');
 const baseCV = require('../config/baseCV');
-
+const Job = require('../models/Job');
 const safe = (s) => (s || 'Unknown').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
 
 // Known correct links for each project (overrides whatever AI produces)
@@ -41,6 +41,8 @@ const normalizeCvData = (cvData) => {
   if (!Array.isArray(cvData.experience)) cvData.experience = [];
   if (!Array.isArray(cvData.education)) cvData.education = [];
   if (!Array.isArray(cvData.achievements)) cvData.achievements = [];
+  if (!Array.isArray(cvData.missingKeywords)) cvData.missingKeywords = [];
+  if (typeof cvData.atsScore !== 'number') cvData.atsScore = null;
 
   return cvData;
 };
@@ -146,4 +148,38 @@ const sendResume = async (req, res) => {
   }
 };
 
-module.exports = { generateResume, downloadResume, sendResume };
+
+const autoAddJob = async (req, res) => {
+  try {
+    const { company, role, platform = 'Manual', status = 'saved', notes = '' } = req.body;
+    if (!company || !role) {
+      return res.status(400).json({ message: 'Company and role required' });
+    }
+
+    // Avoid duplicates
+    const existing = await Job.findOne({
+      company,
+      role,
+      deleted: { $ne: true },
+    });
+    if (existing) {
+      return res.json({ job: existing, created: false });
+    }
+
+    const job = await Job.create({
+      company,
+      role,
+      platform,
+      status,
+      notes: notes || 'Auto-added from document generator',
+      appliedDate: new Date(),
+    });
+
+    res.json({ job, created: true });
+  } catch (err) {
+    console.error('❌ autoAddJob error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { generateResume, downloadResume, sendResume, autoAddJob };

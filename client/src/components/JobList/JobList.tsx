@@ -5,8 +5,11 @@ import {
   generateCoverLetter,
   sendFollowUp,
   protectedCall,
+  updateJobStatus,
   type JobData,
 } from '../../services/api';
+
+
 
 const statusColors: Record<string, string> = {
   saved: 'bg-gray-100 text-gray-800',
@@ -72,7 +75,15 @@ const JobList = () => {
       setGeneratingId(null);
     }
   };
-
+const handleToggleApplied = async (job: JobData) => {
+  const newStatus = job.status === 'applied' ? 'saved' : 'applied';
+  try {
+    await protectedCall(() => updateJobStatus(job._id!, newStatus));
+    loadJobs();
+  } catch (err: any) {
+    alert(err.message || 'Failed to update');
+  }
+};
   const handleSendFollowUp = async (id: string) => {
     try {
       await protectedCall(() => sendFollowUp(id));
@@ -121,7 +132,30 @@ const JobList = () => {
                 <div className="mt-3 flex flex-wrap gap-2 text-sm">
                   <span className="text-gray-400">Follow-ups: {job.followUpCount || 0}</span>
                 </div>
+<div className="mt-4 flex flex-wrap gap-2">
+  {/* NEW: Applied toggle */}
+  {(job.status === 'saved' || job.status === 'applied') && (
+    <button
+      onClick={() => handleToggleApplied(job)}
+      className={`inline-flex items-center px-3 py-1.5 border rounded-md text-sm font-medium transition-colors ${
+        job.status === 'applied'
+          ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
+          : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+      }`}
+    >
+      {job.status === 'applied' ? '✓ Applied' : 'Mark as Applied'}
+    </button>
+  )}
 
+  <button
+    onClick={() => handleSendFollowUp(job._id!)}
+    className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+  >
+    📧 Follow-up
+  </button>
+
+
+</div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     onClick={() => handleSendFollowUp(job._id!)}

@@ -13,6 +13,13 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+export const autoAddJob = (data: {
+  company: string;
+  role: string;
+  platform?: string;
+  status?: string;
+  notes?: string;
+}) => api.post('/jobs/auto-add', data);
 
 export const ensureAdminKey = (): string | null => {
   let key = localStorage.getItem('adminKey');

@@ -13,6 +13,7 @@ const {
   analyzeJob,
   generateCoverLetterForJob,
   downloadCoverLetterPDF,
+  autoAddJob,
 } = require('../controllers/jobController');
 const { checkForApplicationEmails } = require('../services/emailWatcher');
 
@@ -54,5 +55,5 @@ router.post('/:id/follow-up', adminKey, async (req, res) => {
 
 // JD analyzer
 router.post('/:id/analyze-jd', adminKey, analyzeJob);
-
+router.post('/auto-add', autoAddJob);
 module.exports = router;

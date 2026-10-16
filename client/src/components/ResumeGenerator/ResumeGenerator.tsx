@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateResume, downloadResume } from '../../services/api';
+import { generateResume, downloadResume, autoAddJob } from '../../services/api';
 
 const inputClass =
   'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
@@ -57,25 +57,40 @@ const ResumeGenerator = () => {
     }
   };
 
-  const handleDownload = async () => {
-    if (!cvData) return;
-    try {
-      const cName = detected?.company || company || 'Company';
-      const rName = detected?.role || role || 'Role';
-      const res = await downloadResume(cvData, cName, rName);
-      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Ravi_Rajpoot_Resume_${safe(cName)}_${safe(rName)}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert('Download failed');
+ 
+
+const handleDownload = async () => {
+  if (!cvData) return;
+  const cName = detected?.company || company || 'Company';
+  const rName = detected?.role || role || 'Role';
+
+  try {
+    // 1. Download the PDF
+    const res = await downloadResume(cvData, cName, rName);
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Ravi_Rajpoot_Resume_${safe(cName)}_${safe(rName)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    // 2. Auto-add to tracker (silent)
+    if (cName && rName && cName !== 'Company' && rName !== 'Role') {
+      await autoAddJob({
+        company: cName,
+        role: rName,
+        platform: 'Manual',
+        status: 'saved',
+        notes: 'Resume generated',
+      });
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert('Download failed');
+  }
+};
 
   return (
     <div className="max-w-3xl mx-auto">
