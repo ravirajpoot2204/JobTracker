@@ -15,7 +15,7 @@ const ResumeGenerator = () => {
   const [cvData, setCvData] = useState<any>(null);
   const [detected, setDetected] = useState<{ company: string; role: string } | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [downloading, setDownloading] = useState(false);
   const handleGenerate = async () => {
     if (!jobDescription) return alert('Please paste the job description');
     setLoading(true);
@@ -57,40 +57,43 @@ const ResumeGenerator = () => {
     }
   };
 
- 
 
-const handleDownload = async () => {
-  if (!cvData) return;
-  const cName = detected?.company || company || 'Company';
-  const rName = detected?.role || role || 'Role';
 
-  try {
-    // 1. Download the PDF
-    const res = await downloadResume(cvData, cName, rName);
-    const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Ravi_Rajpoot_Resume_${safe(cName)}_${safe(rName)}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+  const handleDownload = async () => {
+    if (!cvData) return;
+    const cName = detected?.company || company || 'Company';
+    const rName = detected?.role || role || 'Role';
+    setDownloading(true);
 
-    // 2. Auto-add to tracker (silent)
-    if (cName && rName && cName !== 'Company' && rName !== 'Role') {
-      await autoAddJob({
-        company: cName,
-        role: rName,
-        platform: 'Manual',
-        status: 'saved',
-        notes: 'Resume generated',
-      });
+    try {
+      // 1. Download the PDF
+      const res = await downloadResume(cvData, cName, rName);
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Ravi_Rajpoot_Resume_${safe(cName)}_${safe(rName)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      // 2. Auto-add to tracker (silent)
+      if (cName && rName && cName !== 'Company' && rName !== 'Role') {
+        await autoAddJob({
+          company: cName,
+          role: rName,
+          platform: 'Manual',
+          status: 'saved',
+          notes: 'Resume generated',
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Download failed — LaTeX server may be busy. Try again.');
+    } finally {
+      setDownloading(false);
     }
-  } catch (err) {
-    console.error(err);
-    alert('Download failed');
-  }
-};
+  };
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -164,9 +167,10 @@ const handleDownload = async () => {
             </pre>
             <button
               onClick={handleDownload}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              disabled={downloading}
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Download PDF
+              {downloading ? 'Generating PDF... (this takes ~15s)' : 'Download PDF'}
             </button>
           </div>
         )}

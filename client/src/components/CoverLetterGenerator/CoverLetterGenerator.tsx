@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { generateCoverLetterStandalone, downloadCoverLetter,autoAddJob } from '../../services/api';
+import { generateCoverLetterStandalone, downloadCoverLetter, autoAddJob } from '../../services/api';
 
 const inputClass =
   'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm';
@@ -18,7 +18,7 @@ const CoverLetterGenerator = () => {
     location?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
-
+  const [downloading, setDownloading] = useState(false);
   const [recipientName, setRecipientName] = useState('');
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
@@ -80,6 +80,7 @@ const CoverLetterGenerator = () => {
 
   const handleDownload = async () => {
     if (!coverLetterText) return;
+    setDownloading(true);
     try {
       const res = await downloadCoverLetter({
         text: coverLetterText,
@@ -102,19 +103,21 @@ const CoverLetterGenerator = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-       // 2. Auto-add to tracker (silent)
-    if (cName && rName && cName !== 'Company' && rName !== 'Role') {
-      await autoAddJob({
-        company: cName,
-        role: rName,
-        platform: 'Manual',
-        status: 'saved',
-        notes: 'Cover letter generated',
-      });
-    }
+      // 2. Auto-add to tracker (silent)
+      if (cName && rName && cName !== 'Company' && rName !== 'Role') {
+        await autoAddJob({
+          company: cName,
+          role: rName,
+          platform: 'Manual',
+          status: 'saved',
+          notes: 'Cover letter generated',
+        });
+      }
     } catch (err) {
       console.error(err);
-      alert('Download failed');
+      alert('Download failed — LaTeX server may be busy. Try again.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -244,9 +247,10 @@ const CoverLetterGenerator = () => {
             />
             <button
               onClick={handleDownload}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              disabled={downloading}
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Download PDF
+              {downloading ? 'Generating PDF... (this takes ~15s)' : 'Download PDF'}
             </button>
           </div>
         )}
